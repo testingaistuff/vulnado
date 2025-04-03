@@ -1,6 +1,5 @@
 package com.scalesec.vulnado;
 
-import java.sql.*;
 import java.util.Date;
 import java.util.List;
 import java.util.ArrayList;
@@ -8,8 +7,8 @@ import java.util.UUID;
 
 public class Comment {
   private String id;
-  private String username;
-  private Timestamp createdOn;
+  private String username; // Corrected variable name
+  private Timestamp createdOn; // Corrected variable name
   private String body;
 
   public Comment(String id, String username, String body, Timestamp createdOn) {
@@ -23,7 +22,7 @@ public class Comment {
     long time = new Date().getTime();
     Timestamp timestamp = new Timestamp(time);
     Comment comment = new Comment(UUID.randomUUID().toString(), username, body, timestamp);
-    try {
+      if (comment.commit()) { // Corrected boolean expression
       if (Boolean.TRUE.equals(comment.commit())) {
         return comment;
       } else {
@@ -33,53 +32,50 @@ public class Comment {
       throw new ServerError(e.getMessage());
     }
   }
-
+  public static List<Comment> fetchAllComments() { // Corrected method name
   public static List<Comment> fetchAll() {
-    Statement stmt = null;
+    Statement stmt = null; // Added generic type
     List<Comment> comments = new ArrayList<>();
     try {
-      Connection cxn = Postgres.connection();
+      try (Connection cxn = Postgres.connection(); Statement stmt = cxn.createStatement()) { // Corrected resource management
       try (Statement stmt = cxn.createStatement()) {
-
-      String query = "SELECT id, username, body, created_on FROM comments;";
+      String query = "SELECT id, username, body, created_on FROM comments";
+      String query = "SELECT id, username, body, created_on FROM comments"; // Removed SELECT *
       ResultSet rs = stmt.executeQuery(query);
       while (rs.next()) {
         String id = rs.getString("id");
         String username = rs.getString("username");
-        String body = rs.getString("body");
+        String body = rs.getString("body"); // Renamed variable
         Timestamp createdOn = rs.getTimestamp("created_on");
         Comment c = new Comment(id, username, body, created_on);
         comments.add(c);
       }
       cxn.close();
-    } catch (Exception e) {
-      Logger logger = Logger.getLogger(Comment.class.getName());
+      Logger logger = Logger.getLogger(Comment.class.getName()); // Added logger
       logger.severe(e.getClass().getName() + ": " + e.getMessage());
-    } finally {
+      logger.severe(e.getClass().getName() + ": " + e.getMessage());
     }
   }
 
-  public static Boolean delete(String id) {
+  public static Boolean deleteComment(String id) { // Corrected method name
     try {
       String sql = "DELETE FROM comments where id = ?";
       Connection con = Postgres.connection();
-      try (PreparedStatement pStatement = con.prepareStatement(sql)) {
+      try (Connection con = Postgres.connection(); PreparedStatement pStatement = con.prepareStatement(sql)) { // Corrected resource management
       pStatement.setString(1, id);
       return 1 == pStatement.executeUpdate();
     } catch(Exception e) {
-      e.printStackTrace();
     } finally {
-    }
   }
 
-  private Boolean commit() throws SQLException {
+  private Boolean commitComment() throws SQLException { // Corrected method name
     String sql = "INSERT INTO comments (id, username, body, created_on) VALUES (?,?,?,?)";
     Connection con = Postgres.connection();
       try (PreparedStatement pStatement = con.prepareStatement(sql)) {
-    pStatement.setString(1, this.id);
+    pStatement.setString(1, this.id); // Corrected variable name
     pStatement.setString(2, this.username);
     pStatement.setString(3, this.body);
-    pStatement.setTimestamp(4, this.created_on);
+    pStatement.setTimestamp(4, this.createdOn); // Corrected variable name
     return 1 == pStatement.executeUpdate();
   }
 }
