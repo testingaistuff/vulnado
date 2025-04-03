@@ -10,6 +10,7 @@ import java.io.IOException;
 import java.util.logging.Logger;
 import java.net.*;
 
+  private LinkLister() {}
 
   private LinkLister() {}
 public class LinkLister {
