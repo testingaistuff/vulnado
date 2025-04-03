@@ -49,9 +49,9 @@ jobs:
               RunName                   = "CodeReview"
               JobName                   = "DemoCodeReviewerGithub"
               PromptId                  = "CodeReviewer__CodeReviewer_V1_Conventions"
-              Llm                       = "${{ vars:LLM }}"
-              PullRequestId             = "${{ vars:GITHUB_EVENT_PULL_REQUEST_NUMBER }}"
-              RepoName                  = "${{ vars:GITHUB_REPOSITORY }}"
+              Llm                       = "${{ vars.LLM }}"
+              PullRequestId             = "${{ vars.GITHUB_EVENT_PULL_REQUEST_NUMBER }}"
+              RepoName                  = "${{ vars.GITHUB_REPOSITORY }}"
               AdditionalInstructions    = ""
               Conventions               = "Header,Description,Summary,Recomendations,VulnExplanation"
           }
