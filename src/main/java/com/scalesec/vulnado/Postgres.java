@@ -9,7 +9,7 @@ import java.sql.PreparedStatement;
 import java.sql.Statement;
 import java.util.UUID;
 
-private Postgres() {}
+private Postgres() {} // Private constructor to hide the implicit public one
 public class Postgres {
 
     public static Connection connection() {
