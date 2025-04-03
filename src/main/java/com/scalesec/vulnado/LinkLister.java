@@ -10,7 +10,7 @@ import java.io.IOException;
 import java.util.logging.Logger;
 import java.net.*;
 
-
+private LinkLister() {}
   private LinkLister() {}
 public class LinkLister {
   public static List<String> getLinks(String url) throws IOException {
