@@ -19,53 +19,66 @@ jobs:
       - name: Authenticate with Keycloak
         id: keycloak_auth
         run: |
-          TOKEN_RESPONSE=$(curl -s -X POST 'http://auth.gftaiimpact.local/realms/ai-impact/protocol/openid-connect/token' \
-            -H 'Content-Type: application/x-www-form-urlencoded' \
-            -d 'client_id=ai-impact-client' \
-            -d "username=administrator" \
-            -d "password=Gft@2025" \
-            -d "scope=openid" \
-            -d "grant_type=password")
+          $TOKEN_RESPONSE = Invoke-RestMethod -Method Post -Uri 'http://auth.gftaiimpact.local/realms/ai-impact/protocol/openid-connect/token' `
+              -ContentType 'application/x-www-form-urlencoded' `
+              -Body @{
+                  client_id = 'ai-impact-client'
+                  username = 'administrator'
+                  password = 'Gft@2025'
+                  scope = 'openid'
+                  grant_type = 'password'
+              } -ErrorAction SilentlyContinue
 
-          ACCESS_TOKEN=$(echo $TOKEN_RESPONSE | jq -r '.access_token')
+          $ACCESS_TOKEN = $TOKEN_RESPONSE.access_token
 
-          if [ -z "$ACCESS_TOKEN" ] || [ "$ACCESS_TOKEN" == "null" ]; then
-            echo "Failed to obtain access token"
-            echo "$TOKEN_RESPONSE"
-            exit 1
-          fi
+          if ([string]::IsNullOrEmpty($ACCESS_TOKEN) -or $ACCESS_TOKEN -eq "null") {
+              Write-Host "Failed to obtain access token"
+              Write-Host ($TOKEN_RESPONSE | ConvertTo-Json)
+              exit 1
+          }
 
-          echo "access_token=$ACCESS_TOKEN" >> $GITHUB_ENV
+          Write-Output "access_token=$ACCESS_TOKEN" | Add-Content -Path $env:GITHUB_ENV
 
       - name: Trigger Code Review API
         id: send_code_review
         run: |
-          echo "Repositório: ${{github.repository}}"
-          RESPONSE=$(curl --location 'http://api.gftaiimpact.local/ai/review' \
-            --header "Authorization: Bearer ${{ env.access_token }}" \
-            --form 'RunName="CodeReview"' \
-            --form 'JobName="DemoCodeReviewerGithub"' \
-            --form 'PromptId="CodeReviewer__CodeReviewer_V1_Conventions"' \
-            --form 'Llm="${{ vars.LLM }}"' \
-            --form 'PullRequestId="${{ github.event.pull_request.number }}"' \
-            --form 'RepoName="${{ github.repository }}"' \
-            --form 'AdditionalInstructions=""' \
-            --form 'Conventions="Header,Description,Summary,Recomendations,VulnExplanation"') 
-          echo "API Response: $RESPONSE"
-          JOB_ID=$(echo $RESPONSE)
-          echo "job_id=$JOB_ID" >> $GITHUB_ENV
+          Write-Host "Repositório: $($env:GITHUB_REPOSITORY)"
+
+          $RESPONSE = Invoke-RestMethod -Method Post -Uri 'http://api.gftaiimpact.local/ai/review' `
+              -Headers @{
+                  "Authorization" = "Bearer $($env:access_token)"
+              } `
+              -Form @{
+                  'RunName' = 'CodeReview'
+                  'JobName' = 'DemoCodeReviewerGithub'
+                  'PromptId' = 'CodeReviewer__CodeReviewer_V1_Conventions'
+                  'Llm' = "$($env:LLM)"
+                  'PullRequestId' = "$($env:GITHUB_EVENT_PULL_REQUEST_NUMBER)"
+                  'RepoName' = "$($env:GITHUB_REPOSITORY)"
+                  'AdditionalInstructions' = ''
+                  'Conventions' = 'Header,Description,Summary,Recomendations,VulnExplanation'
+              }
+
+          Write-Host "API Response: $RESPONSE"
+          $JOB_ID = $RESPONSE
+          Write-Output "job_id=$JOB_ID" | Add-Content -Path $env:GITHUB_ENV
 
       - name: Monitor Code Review Job Status
         id: monitor_code_review_status
         run: |
-          JOB_ID=${{ env.job_id }}
-          STATUS="Pending"
-          while [[ "$STATUS" != "Completed" ]]; do
-            RESPONSE=$(curl --location "http://api.gftaiimpact.local/ai/jobs/$JOB_ID/status" \
-              --header "Authorization: Bearer ${{ env.access_token }}")
-            STATUS=$(echo $RESPONSE | jq -r '.status')
-            echo "Current status: $STATUS"
-            sleep 10
-          done
-          echo "Final status: $STATUS"
+          $JOB_ID = $env:job_id
+          $STATUS = "Pending"
+
+          while ($STATUS -ne "Completed") {
+              $RESPONSE = Invoke-RestMethod -Method Get -Uri "http://api.gftaiimpact.local/ai/jobs/$JOB_ID/status" `
+                  -Headers @{
+                      "Authorization" = "Bearer $($env:access_token)"
+                  }
+              
+              $STATUS = $RESPONSE.status
+              Write-Host "Current status: $STATUS"
+              Start-Sleep -Seconds 10
+          }
+
+          Write-Host "Final status: $STATUS"
 
