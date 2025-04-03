@@ -4,7 +4,7 @@ import java.util.logging.Logger;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 
-private Cowsay() {}
+private Cowsay() { throw new UnsupportedOperationException("Utility class"); }
 public class Cowsay {
   public static String run(String input) {
     ProcessBuilder processBuilder = new ProcessBuilder();
